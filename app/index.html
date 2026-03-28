@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Textbook Canvas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --fg: #2c2825;
+      --muted: #8a8279;
+      --accent: #c45c3e;
+      --card: #fffef9;
+      --border: #d9d3c7;
+      --paper-line: #e0d9cc;
+      --shadow: rgba(44, 40, 37, 0.08);
+    }
+
+    [data-theme="white"] {
+      --bg: #fafafa;
+      --fg: #1a1a1a;
+      --muted: #737373;
+      --accent: #2563eb;
+      --card: #ffffff;
+      --border: #e5e5e5;
+      --paper-line: #f0f0f0;
+      --shadow: rgba(0, 0, 0, 0.06);
+    }
+
+    [data-theme="yellow"] {
+      --bg: #fff9c4;
+      --fg: #3d3d00;
+      --muted: #8a8a4a;
+      --accent: #e65100;
+      --card: #fffde7;
+      --border: #f0e68c;
+      --paper-line: #f5f0b0;
+      --shadow: rgba(61, 61, 0, 0.08);
+    }
+
+    [data-theme="sepia"] {
+      --bg: #f4ecd8;
+      --fg: #3d3425;
+      --muted: #8a7d69;
+      --accent: #8b4513;
+      --card: #faf6eb;
+      --border: #d4c9b5;
+      --paper-line: #e8dfca;
+      --shadow: rgba(61, 52, 37, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Source Sans 3', sans-serif;
+    }
+
+    h1, h2, h3, .font-display {
+      font-family: 'Crimson Pro', serif;
+    }
+
+    .paper-texture {
+      background-image: 
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 27px,
+          var(--paper-line) 28px
+        );
+      background-color: var(--card);
+    }
+
+    .grid-texture {
+      background-image: 
+        linear-gradient(var(--paper-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+      background-size: 20px 20px;
+      background-color: var(--card);
+    }
+
+    .dot-texture {
+      background-image: radial-gradient(circle, var(--paper-line) 1px, transparent 1px);
+      background-size: 16px 16px;
+      background-color: var(--card);
+    }
+
+    .btn {
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .modal-overlay {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      transform: scale(0.95) translateY(10px);
+      transition: transform 0.25s ease;
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: scale(1) translateY(0);
+    }
+
+    .box-enter {
+      animation: boxEnter 0.4s ease forwards;
+    }
+
+    @keyframes boxEnter {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .tool-active {
+      background: var(--accent) !important;
+      color: white !important;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border);
+      border-radius: 4px;
+      height: 6px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    .title-input {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .title-input:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    /* Draggable elements */
+    .draggable {
+      cursor: grab;
+      user-select: none;
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
+    }
+
+    .draggable:hover {
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .draggable.dragging {
+      cursor: grabbing;
+      box-shadow: 0 8px 24px var(--shadow);
+      transform: scale(1.02);
+      z-index: 100;
+      opacity: 0.9;
+    }
+
+    .draggable-text {
+      pointer-events: auto;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(2px);
+      border-radius: 4px;
+      padding: 4px 8px;
+      border: 1px solid transparent;
+      transition: border-color 0.15s ease;
+    }
+
+    .draggable-text:hover {
+      border-color: var(--accent);
+    }
+
+    .draggable-text.editing {
+      cursor: text;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.95);
+    }
+
+    .draggable-image {
+      pointer-events: auto;
+      border-radius: 6px;
+      border: 2px solid transparent;
+    }
+
+    .draggable-image:hover {
+      border-color: var(--accent);
+    }
+
+    .draggable-image.dragging {
+      border-color: var(--accent);
+    }
+
+    /* Delete button for elements */
+    .element-delete {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      background: #dc2626;
+      color: white;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      z-index: 10;
+      transition: transform 0.1s ease;
+    }
+
+    .draggable:hover .element-delete {
+      display: flex;
+    }
+
+    .element-delete:hover {
+      transform: scale(1.2);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body data-theme="cream">
+  <div class="h-full flex flex-col p-3 md:p-4 gap-3">
+    <!-- Header -->
+    <header class="flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <h1 class="font-display text-xl md:text-2xl font-semibold tracking-tight" style="color: var(--fg);">Textbook Canvas</h1>
+        <span class="text-xs px-2 py-0.5 rounded" style="background: var(--border); color: var(--muted);">v1.1</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openSettings()" class="btn px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5" style="background: var(--card); border: 1px solid var(--border);" aria-label="Open settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings
+        </button>
+        <button onclick="shareSession()" class="btn px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5" style="background: var(--accent); color: white;" aria-label="Share session">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          Share
+        </button>
+      </div>
+    </header>
+
+    <!-- Canvas Grid -->
+    <main class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 min-h-0" id="canvasGrid">
+      <!-- Boxes will be generated by JS -->
+    </main>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.4);">
+    <div class="modal-content w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl" style="background: var(--card);">
+      <div class="p-5">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="font-display text-xl font-semibold">Settings</h2>
+          <button onclick="closeSettings()" class="p-1 rounded hover:opacity-70" aria-label="Close settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <!-- Theme -->
+        <div class="mb-5">
+          <label class="block text-sm font-medium mb-2" style="color: var(--muted);">Theme</label>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="setTheme('cream')" class="theme-btn p-3 rounded-lg border-2" data-theme-btn="cream" style="background: #f5f1e8; border-color: #d9d3c7;">
+              <span class="text-xs font-medium" style="color: #2c2825;">Cream</span>
+            </button>
+            <button onclick="setTheme('white')" class="theme-btn p-3 rounded-lg border-2" data-theme-btn="white" style="background: #fafafa; border-color: #e5e5e5;">
+              <span class="text-xs font-medium" style="color: #1a1a1a;">White</span>
+            </button>
+            <button onclick="setTheme('yellow')" class="theme-btn p-3 rounded-lg border-2" data-theme-btn="yellow" style="background: #fff9c4; border-color: #f0e68c;">
+              <span class="text-xs font-medium" style="color: #3d3d00;">Yellow</span>
+            </button>
+            <button onclick="setTheme('sepia')" class="theme-btn p-3 rounded-lg border-2" data-theme-btn="sepia" style="background: #f4ecd8; border-color: #d4c9b5;">
+              <span class="text-xs font-medium" style="color: #3d3425;">Sepia</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Paper Style -->
+        <div class="mb-5">
+          <label class="block text-sm font-medium mb-2" style="color: var(--muted);">Paper Style</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setPaperStyle('paper')" class="paper-btn px-3 py-2 rounded-lg text-sm font-medium border-2" data-paper-btn="paper" style="border-color: var(--border);">Lined</button>
+            <button onclick="setPaperStyle('grid')" class="paper-btn px-3 py-2 rounded-lg text-sm font-medium border-2" data-paper-btn="grid" style="border-color: var(--border);">Grid</button>
+            <button onclick="setPaperStyle('dot')" class="paper-btn px-3 py-2 rounded-lg text-sm font-medium border-2" data-paper-btn="dot" style="border-color: var(--border);">Dotted</button>
+          </div>
+        </div>
+
+        <!-- Drawing Settings -->
+        <div class="mb-5">
+          <label class="block text-sm font-medium mb-2" style="color: var(--muted);">Default Brush Size</label>
+          <input type="range" id="brushSizeSetting" min="1" max="20" value="3" class="w-full" onchange="updateBrushSize(this.value)">
+          <div class="flex justify-between text-xs mt-1" style="color: var(--muted);">
+            <span>Fine</span>
+            <span id="brushSizeValue">3px</span>
+            <span>Thick</span>
+          </div>
+        </div>
+
+        <!-- Default Color -->
+        <div class="mb-5">
+          <label class="block text-sm font-medium mb-2" style="color: var(--muted);">Default Ink Color</label>
+          <div class="flex gap-2">
+            <button onclick="setDefaultColor('#2c2825')" class="w-8 h-8 rounded-full border-2" style="background: #2c2825; border-color: transparent;"></button>
+            <button onclick="setDefaultColor('#1a365d')" class="w-8 h-8 rounded-full border-2" style="background: #1a365d; border-color: transparent;"></button>
+            <button onclick="setDefaultColor('#c45c3e')" class="w-8 h-8 rounded-full border-2" style="background: #c45c3e; border-color: transparent;"></button>
+            <button onclick="setDefaultColor('#2f855a')" class="w-8 h-8 rounded-full border-2" style="background: #2f855a; border-color: transparent;"></button>
+            <button onclick="setDefaultColor('#5b21b6')" class="w-8 h-8 rounded-full border-2" style="background: #5b21b6; border-color: transparent;"></button>
+            <input type="color" id="customColorPicker" class="w-8 h-8 rounded-full cursor-pointer" style="border: none;" onchange="setDefaultColor(this.value)">
+          </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="border-t pt-5" style="border-color: var(--border);">
+          <label class="block text-sm font-medium mb-3" style="color: var(--muted);">Data Management</label>
+          <div class="flex flex-col gap-2">
+            <button onclick="exportData()" class="btn w-full px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2" style="background: var(--card); border: 1px solid var(--border);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export Session
+            </button>
+            <label class="btn w-full px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-pointer" style="background: var(--card); border: 1px solid var(--border);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Import Session
+              <input type="file" accept=".json" class="hidden" onchange="importData(event)">
+            </label>
+            <button onclick="clearAll()" class="btn w-full px-4 py-2 rounded-lg text-sm font-medium" style="background: #fee2e2; color: #991b1b;">
+              Clear All
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="shareModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.4);">
+    <div class="modal-content w-full max-w-md rounded-xl shadow-2xl" style="background: var(--card);">
+      <div class="p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-xl font-semibold">Share Session</h2>
+          <button onclick="closeShare()" class="p-1 rounded hover:opacity-70" aria-label="Close share modal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <p class="text-sm mb-3" style="color: var(--muted);">Copy this link to share your session. The link contains all your drawings and notes.</p>
+        <div class="flex gap-2">
+          <input type="text" id="shareLink" readonly class="flex-1 px-3 py-2 rounded-lg text-sm" style="background: var(--bg); border: 1px solid var(--border); color: var(--fg);">
+          <button onclick="copyShareLink()" class="px-4 py-2 rounded-lg text-sm font-medium" style="background: var(--accent); color: white;">Copy</button>
+        </div>
+        <p class="text-xs mt-2" style="color: var(--muted);">Note: Large images may make the link too long. Use Export for heavy content.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize settings first
+    const settings = {
+      theme: 'cream',
+      paperStyle: 'paper',
+      brushSize: 3,
+      brushColor: '#2c2825'
+    };
+
+    // Initialize box data
+    const boxData = [
+      { id: 1, name: 'Notes', drawings: [], texts: [], images: [] },
+      { id: 2, name: 'Sketches', drawings: [], texts: [], images: [] },
+      { id: 3, name: 'Ideas', drawings: [], texts: [], images: [] },
+      { id: 4, name: 'Drafts', drawings: [], texts: [], images: [] }
+    ];
+
+    // State for each box
+    const boxStates = {};
+    
+    // Global drag state
+    let activeDrag = null;
+
+    // Initialize the application
+    function init() {
+      loadFromURL();
+      renderBoxes();
+      applySettings();
+      setupGlobalDragListeners();
+    }
+
+    // Global drag listeners
+    function setupGlobalDragListeners() {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+      document.addEventListener('touchmove', handleDragMove, { passive: false });
+      document.addEventListener('touchend', handleDragEnd);
+    }
+
+    // Drag handlers
+    function handleDragMove(e) {
+      if (!activeDrag) return;
+      
+      e.preventDefault();
+      
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      const container = activeDrag.container;
+      const element = activeDrag.element;
+      const rect = container.getBoundingClientRect();
+      
+      let newX = clientX - rect.left - activeDrag.offsetX;
+      let newY = clientY - rect.top - activeDrag.offsetY;
+      
+      // Constrain to container bounds
+      const maxX = Math.max(0, rect.width - element.offsetWidth);
+      const maxY = Math.max(0, rect.height - element.offsetHeight);
+      
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
+      
+      element.style.left = newX + 'px';
+      element.style.top = newY + 'px';
+    }
+
+    function handleDragEnd() {
+      if (activeDrag) {
+        activeDrag.element.classList.remove('dragging');
+        activeDrag = null;
+      }
+    }
+
+    // Make element draggable
+    function makeDraggable(element, container, onDelete) {
+      const startDrag = (e) => {
+        // Don't drag if editing text
+        if (element.classList.contains('editing')) return;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        const rect = container.getBoundingClientRect();
+        const elemRect = element.getBoundingClientRect();
+        
+        activeDrag = {
+          element: element,
+          container: container,
+          offsetX: clientX - elemRect.left,
+          offsetY: clientY - elemRect.top
+        };
+        
+        element.classList.add('dragging');
+        e.preventDefault();
+      };
+
+      element.addEventListener('mousedown', startDrag);
+      element.addEventListener('touchstart', startDrag, { passive: false });
+    }
+
+    // Render all boxes
+    function renderBoxes() {
+      const grid = document.getElementById('canvasGrid');
+      grid.innerHTML = '';
+
+      boxData.forEach((box, index) => {
+        const boxEl = createBox(box, index);
+        grid.appendChild(boxEl);
+      });
+    }
+
+    // Create a single box
+    function createBox(box, index) {
+      const div = document.createElement('div');
+      div.className = 'box-enter flex flex-col rounded-xl overflow-hidden shadow-lg';
+      div.style.cssText = `background: var(--card); border: 1px solid var(--border); animation-delay: ${index * 0.1}s;`;
+
+      div.innerHTML = `
+        <div class="flex items-center justify-between px-3 py-2 border-b" style="background: var(--bg); border-color: var(--border);">
+          <input type="text" value="${box.name}" class="title-input font-display text-base font-semibold" style="color: var(--fg);" onchange="updateBoxName(${box.id}, this.value)" aria-label="Box name">
+          <div class="flex gap-1">
+            <button onclick="clearBox(${box.id})" class="p-1 rounded hover:opacity-70" title="Clear box" aria-label="Clear box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="relative flex-1" id="canvasContainer${box.id}" style="min-height: 0;">
+          <canvas id="canvas${box.id}" class="absolute inset-0 ${settings.paperStyle}-texture cursor-crosshair"></canvas>
+          <div id="objectLayer${box.id}" class="absolute inset-0 overflow-hidden"></div>
+        </div>
+        
+        <div class="flex items-center gap-1 px-2 py-1.5 border-t" style="background: var(--bg); border-color: var(--border);">
+          <button onclick="setTool(${box.id}, 'draw')" class="tool-btn p-1.5 rounded" data-box="${box.id}" data-tool="draw" title="Draw" aria-label="Draw tool">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path></svg>
+          </button>
+          <button onclick="setTool(${box.id}, 'erase')" class="tool-btn p-1.5 rounded" data-box="${box.id}" data-tool="erase" title="Erase" aria-label="Erase tool">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16c-.6-.6-.6-1.5 0-2.1l10-10c.6-.6 1.5-.6 2.1 0l6.9 6.9c.6.6.6 1.5 0 2.1L15 20"></path><path d="M6.5 13.5L12 8"></path></svg>
+          </button>
+          <button onclick="addText(${box.id})" class="tool-btn p-1.5 rounded" data-box="${box.id}" data-tool="text" title="Add text" aria-label="Add text">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+          </button>
+          <label class="tool-btn p-1.5 rounded cursor-pointer" title="Add image" aria-label="Add image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <input type="file" accept="image/*" class="hidden" onchange="addImage(${box.id}, event)">
+          </label>
+          
+          <div class="flex-1"></div>
+          
+          <input type="color" value="${settings.brushColor}" class="w-6 h-6 rounded cursor-pointer" style="border: none;" onchange="setBrushColor(${box.id}, this.value)" aria-label="Brush color">
+          <input type="range" min="1" max="20" value="${settings.brushSize}" class="w-16" onchange="setBrushSize(${box.id}, this.value)" aria-label="Brush size">
+        </div>
+      `;
+
+      // Initialize after adding to DOM
+      setTimeout(() => initCanvas(box.id), 0);
+
+      return div;
+    }
+
+    // Initialize canvas for a box
+    function initCanvas(boxId) {
+      const canvas = document.getElementById(`canvas${boxId}`);
+      const container = document.getElementById(`canvasContainer${boxId}`);
+      
+      if (!canvas || !container) return;
+
+      // Set up state
+      boxStates[boxId] = {
+        isDrawing: false,
+        tool: 'draw',
+        brushColor: settings.brushColor,
+        brushSize: settings.brushSize,
+        lastX: 0,
+        lastY: 0
+      };
+
+      // Size canvas
+      const rect = container.getBoundingClientRect();
+      const width = Math.max(1, Math.floor(rect.width));
+      const height = Math.max(1, Math.floor(rect.height));
+      
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Restore drawings
+      restoreDrawings(boxId);
+      
+      // Restore objects
+      restoreObjects(boxId);
+
+      // Event listeners
+      canvas.addEventListener('mousedown', (e) => startDrawing(boxId, e));
+      canvas.addEventListener('mousemove', (e) => draw(boxId, e));
+      canvas.addEventListener('mouseup', () => stopDrawing(boxId));
+      canvas.addEventListener('mouseleave', () => stopDrawing(boxId));
+
+      // Touch events
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        startDrawing(boxId, touch);
+      });
+      canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        draw(boxId, touch);
+      });
+      canvas.addEventListener('touchend', () => stopDrawing(boxId));
+
+      // Set initial tool
+      setTool(boxId, 'draw');
+    }
+
+    // Drawing functions
+    function startDrawing(boxId, e) {
+      const state = boxStates[boxId];
+      if (!state) return;
+      
+      state.isDrawing = true;
+      const canvas = document.getElementById(`canvas${boxId}`);
+      const rect = canvas.getBoundingClientRect();
+      state.lastX = e.clientX - rect.left;
+      state.lastY = e.clientY - rect.top;
+    }
+
+    function draw(boxId, e) {
+      const state = boxStates[boxId];
+      if (!state || !state.isDrawing) return;
+
+      const canvas = document.getElementById(`canvas${boxId}`);
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.getBoundingClientRect();
+      
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      ctx.beginPath();
+      ctx.moveTo(state.lastX, state.lastY);
+      ctx.lineTo(x, y);
+
+      if (state.tool === 'erase') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
+        ctx.lineWidth = Math.max(1, state.brushSize * 3);
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = state.brushColor || '#2c2825';
+        ctx.lineWidth = Math.max(1, state.brushSize);
+      }
+
+      ctx.stroke();
+
+      state.lastX = x;
+      state.lastY = y;
+    }
+
+    function stopDrawing(boxId) {
+      const state = boxStates[boxId];
+      if (!state) return;
+      
+      if (state.isDrawing) {
+        saveDrawings(boxId);
+      }
+      state.isDrawing = false;
+    }
+
+    // Save/restore drawings
+    function saveDrawings(boxId) {
+      const canvas = document.getElementById(`canvas${boxId}`);
+      if (!canvas) return;
+      
+      const box = boxData.find(b => b.id === boxId);
+      if (box) {
+        box.drawings = canvas.toDataURL();
+      }
+    }
+
+    function restoreDrawings(boxId) {
+      const box = boxData.find(b => b.id === boxId);
+      const canvas = document.getElementById(`canvas${boxId}`);
+      if (!box || !canvas || !box.drawings) return;
+
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = box.drawings;
+    }
+
+    // Restore objects (texts and images)
+    function restoreObjects(boxId) {
+      const box = boxData.find(b => b.id === boxId);
+      const objectLayer = document.getElementById(`objectLayer${boxId}`);
+      const container = document.getElementById(`canvasContainer${boxId}`);
+      
+      if (!box || !objectLayer || !container) return;
+
+      // Restore texts
+      if (box.texts && box.texts.length > 0) {
+        box.texts.forEach((textData, index) => {
+          createTextElement(boxId, textData.content, textData.x, textData.y, textData.color, objectLayer, container);
+        });
+      }
+
+      // Restore images
+      if (box.images && box.images.length > 0) {
+        box.images.forEach((imgData, index) => {
+          createImageElement(boxId, imgData.src, imgData.x, imgData.y, objectLayer, container);
+        });
+      }
+    }
+
+    // Create text element
+    function createTextElement(boxId, content, x, y, color, objectLayer, container) {
+      const textEl = document.createElement('div');
+      textEl.className = 'draggable draggable-text absolute';
+      textEl.style.cssText = `left: ${x}px; top: ${y}px; color: ${color || settings.brushColor}; font-family: 'Crimson Pro', serif; min-width: 30px;`;
+      textEl.textContent = content;
+      textEl.contentEditable = true;
+      
+      // Delete button
+      const deleteBtn = document.createElement('span');
+      deleteBtn.className = 'element-delete';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        textEl.remove();
+        saveObjects(boxId);
+      };
+      textEl.appendChild(deleteBtn);
+
+      // Handle editing state
+      textEl.addEventListener('focus', () => {
+        textEl.classList.add('editing');
+      });
+
+      textEl.addEventListener('blur', () => {
+        textEl.classList.remove('editing');
+        if (!textEl.textContent.trim()) {
+          textEl.remove();
+        }
+        saveObjects(boxId);
+      });
+
+      // Prevent drag when editing
+      textEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          textEl.blur();
+        }
+      });
+
+      makeDraggable(textEl, container);
+      objectLayer.appendChild(textEl);
+      
+      return textEl;
+    }
+
+    // Create image element
+    function createImageElement(boxId, src, x, y, objectLayer, container) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'draggable draggable-image absolute';
+      wrapper.style.cssText = `left: ${x}px; top: ${y}px;`;
+      
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'max-w-[120px] max-h-[120px] object-contain rounded shadow pointer-events-none';
+      img.draggable = false;
+      wrapper.appendChild(img);
+      
+      // Delete button
+      const deleteBtn = document.createElement('span');
+      deleteBtn.className = 'element-delete';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        wrapper.remove();
+        saveObjects(boxId);
+      };
+      wrapper.appendChild(deleteBtn);
+
+      makeDraggable(wrapper, container);
+      objectLayer.appendChild(wrapper);
+      
+      return wrapper;
+    }
+
+    // Save objects to boxData
+    function saveObjects(boxId) {
+      const box = boxData.find(b => b.id === boxId);
+      const objectLayer = document.getElementById(`objectLayer${boxId}`);
+      const container = document.getElementById(`canvasContainer${boxId}`);
+      
+      if (!box || !objectLayer || !container) return;
+
+      const containerRect = container.getBoundingClientRect();
+
+      // Save texts
+      box.texts = [];
+      objectLayer.querySelectorAll('.draggable-text').forEach(textEl => {
+        const rect = textEl.getBoundingClientRect();
+        box.texts.push({
+          content: textEl.textContent.replace('×', '').trim(),
+          x: parseInt(textEl.style.left) || 0,
+          y: parseInt(textEl.style.top) || 0,
+          color: textEl.style.color
+        });
+      });
+
+      // Save images
+      box.images = [];
+      objectLayer.querySelectorAll('.draggable-image').forEach(imgWrapper => {
+        const img = imgWrapper.querySelector('img');
+        if (img) {
+          box.images.push({
+            src: img.src,
+            x: parseInt(imgWrapper.style.left) || 0,
+            y: parseInt(imgWrapper.style.top) || 0
+          });
+        }
+      });
+    }
+
+    // Tool functions
+    function setTool(boxId, tool) {
+      const state = boxStates[boxId];
+      if (!state) return;
+      
+      state.tool = tool;
+      
+      // Update UI
+      document.querySelectorAll(`[data-box="${boxId}"]`).forEach(btn => {
+        btn.classList.remove('tool-active');
+        if (btn.dataset.tool === tool) {
+          btn.classList.add('tool-active');
+        }
+      });
+
+      const canvas = document.getElementById(`canvas${boxId}`);
+      if (canvas) {
+        canvas.style.cursor = tool === 'erase' ? 'cell' : 'crosshair';
+      }
+    }
+
+    function setBrushColor(boxId, color) {
+      const state = boxStates[boxId];
+      if (state) {
+        state.brushColor = color;
+      }
+    }
+
+    function setBrushSize(boxId, size) {
+      const state = boxStates[boxId];
+      if (state) {
+        state.brushSize = parseInt(size);
+      }
+    }
+
+    // Text function
+    function addText(boxId) {
+      const objectLayer = document.getElementById(`objectLayer${boxId}`);
+      const container = document.getElementById(`canvasContainer${boxId}`);
+      const box = boxData.find(b => b.id === boxId);
+      
+      if (!objectLayer || !container || !box) return;
+
+      const textEl = createTextElement(boxId, 'Type here...', 20, 20 + (box.texts.length * 35), settings.brushColor, objectLayer, container);
+      
+      // Focus and select all
+      setTimeout(() => {
+        textEl.focus();
+        const range = document.createRange();
+        range.selectNodeContents(textEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }, 10);
+      
+      saveObjects(boxId);
+    }
+
+    // Image function
+    function addImage(boxId, event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const box = boxData.find(b => b.id === boxId);
+        const objectLayer = document.getElementById(`objectLayer${boxId}`);
+        const container = document.getElementById(`canvasContainer${boxId}`);
+        
+        if (!box || !objectLayer || !container) return;
+
+        const imgCount = box.images ? box.images.length : 0;
+        createImageElement(boxId, e.target.result, 20 + (imgCount * 10), 20 + (imgCount * 10), objectLayer, container);
+        saveObjects(boxId);
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    // Clear box
+    function clearBox(boxId) {
+      if (!confirm('Clear this box?')) return;
+
+      const canvas = document.getElementById(`canvas${boxId}`);
+      const objectLayer = document.getElementById(`objectLayer${boxId}`);
+      const box = boxData.find(b => b.id === boxId);
+
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      if (objectLayer) objectLayer.innerHTML = '';
+      if (box) {
+        box.drawings = [];
+        box.texts = [];
+        box.images = [];
+      }
+    }
+
+    // Update box name
+    function updateBoxName(boxId, name) {
+      const box = boxData.find(b => b.id === boxId);
+      if (box) box.name = name;
+    }
+
+    // Settings functions
+    function openSettings() {
+      document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function setTheme(theme) {
+      settings.theme = theme;
+      document.body.dataset.theme = theme;
+      
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.style.borderColor = btn.dataset.themeBtn === theme ? 'var(--accent)' : 'var(--border)';
+      });
+    }
+
+    function setPaperStyle(style) {
+      settings.paperStyle = style;
+      
+      document.querySelectorAll('canvas').forEach(canvas => {
+        canvas.classList.remove('paper-texture', 'grid-texture', 'dot-texture');
+        canvas.classList.add(`${style}-texture`);
+      });
+
+      document.querySelectorAll('.paper-btn').forEach(btn => {
+        btn.style.borderColor = btn.dataset.paperBtn === style ? 'var(--accent)' : 'var(--border)';
+      });
+    }
+
+    function updateBrushSize(value) {
+      settings.brushSize = parseInt(value);
+      document.getElementById('brushSizeValue').textContent = value + 'px';
+    }
+
+    function setDefaultColor(color) {
+      settings.brushColor = color;
+      document.getElementById('customColorPicker').value = color;
+    }
+
+    function applySettings() {
+      setTheme(settings.theme);
+      setPaperStyle(settings.paperStyle);
+      document.getElementById('brushSizeSetting').value = settings.brushSize;
+      document.getElementById('brushSizeValue').textContent = settings.brushSize + 'px';
+      document.getElementById('customColorPicker').value = settings.brushColor;
+    }
+
+    // Share/Export functions
+    function shareSession() {
+      // Save all objects first
+      boxData.forEach(box => saveObjects(box.id));
+      
+      const data = JSON.stringify({ settings, boxData });
+      const encoded = btoa(encodeURIComponent(data));
+      const url = window.location.origin + window.location.pathname + '#' + encoded;
+      
+      document.getElementById('shareLink').value = url;
+      document.getElementById('shareModal').classList.add('active');
+    }
+
+    function closeShare() {
+      document.getElementById('shareModal').classList.remove('active');
+    }
+
+    function copyShareLink() {
+      const input = document.getElementById('shareLink');
+      input.select();
+      document.execCommand('copy');
+      alert('Link copied!');
+    }
+
+    function loadFromURL() {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+
+      try {
+        const data = JSON.parse(decodeURIComponent(atob(hash)));
+        if (data.settings) Object.assign(settings, data.settings);
+        if (data.boxData) {
+          data.boxData.forEach((box, i) => {
+            if (boxData[i]) Object.assign(boxData[i], box);
+          });
+        }
+      } catch (e) {
+        console.log('Could not load from URL');
+      }
+    }
+
+    function exportData() {
+      // Save all objects first
+      boxData.forEach(box => saveObjects(box.id));
+      
+      const data = JSON.stringify({ settings, boxData }, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'textbook-canvas-' + Date.now() + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.settings) Object.assign(settings, data.settings);
+          if (data.boxData) {
+            data.boxData.forEach((box, i) => {
+              if (boxData[i]) Object.assign(boxData[i], box);
+            });
+          }
+          applySettings();
+          renderBoxes();
+          closeSettings();
+        } catch (err) {
+          alert('Invalid file format');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearAll() {
+      if (!confirm('Clear all boxes and reset settings?')) return;
+      boxData.forEach(box => {
+        box.drawings = [];
+        box.texts = [];
+        box.images = [];
+        box.name = ['Notes', 'Sketches', 'Ideas', 'Drafts'][box.id - 1];
+      });
+      renderBoxes();
+      closeSettings();
+    }
+
+    // Handle window resize
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        boxData.forEach(box => {
+          const canvas = document.getElementById(`canvas${box.id}`);
+          const container = document.getElementById(`canvasContainer${box.id}`);
+          if (canvas && container) {
+            const rect = container.getBoundingClientRect();
+            const width = Math.max(1, Math.floor(rect.width));
+            const height = Math.max(1, Math.floor(rect.height));
+            
+            // Save current drawing
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempCanvas.getContext('2d').drawImage(canvas, 0, 0);
+            
+            // Resize
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Restore
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempCanvas, 0, 0);
+          }
+        });
+      }, 200);
+    });
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

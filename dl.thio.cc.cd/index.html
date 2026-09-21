@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DL — Thio Downloads</title>
+<meta name="description" content="A clean, fast file library. Search, preview, and download files instantly.">
+<meta name="theme-color" content="#F0F7FF">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230EA5E9'/><text x='50' y='70' font-family='Arial,sans-serif' font-size='52' font-weight='bold' fill='white' text-anchor='middle'>DL</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============ Reset & Base ============ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ============ Tokens (Alpine / Sky Blue Theme) ============ */
+:root {
+  --bg: #F0F7FF;             /* Soft sky-tinted background */
+  --surface: #FFFFFF;        /* Clean white surface */
+  --surface-2: #E6F0FA;      /* Slightly darker sky tint */
+  --surface-3: #D6E6F5;      /* Even darker for hovers/active */
+  --border: #DAE9F5;         /* Light blue-gray border */
+  --border-strong: #B6CFE5;  /* Stronger blue-gray border */
+  
+  --text: #1E293B;           /* Slate 800 - dark but not pure black */
+  --text-2: #475569;         /* Slate 600 */
+  --text-muted: #64748B;     /* Slate 500 */
+  --text-faint: #94A3B8;     /* Slate 400 */
+  
+  --accent: #0EA5E9;         /* Sky 500 - main accent */
+  --accent-hover: #0284C7;   /* Sky 600 */
+  --accent-soft: #E0F2FE;    /* Sky 100 - for selected states */
+  --accent-text: #FFFFFF;
+  
+  --success: #16A34A;
+  --danger: #DC2626;
+  --warn: #D97706;
+  
+  --shadow-sm: 0 1px 2px rgba(30, 41, 59, 0.04);
+  --shadow-md: 0 4px 14px rgba(30, 41, 59, 0.06);
+  --shadow-lg: 0 16px 40px rgba(30, 41, 59, 0.10);
+  
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  
+  --header-h: 60px;
+  --preview-w: 400px;
+  
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+/* ============ Header ============ */
+.app-header {
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.search-bar {
+  flex: 1;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 38px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: border-color .15s, background .15s;
+}
+.search-bar:focus-within {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+.search-icon { color: var(--text-muted); flex-shrink: 0; }
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text);
+  min-width: 0;
+}
+.search-bar input::placeholder { color: var(--text-muted); }
+.search-bar input::-webkit-search-cancel-button { display: none; }
+.search-kbd {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.header-actions { display: flex; gap: 8px; flex-shrink: 0; margin-left: auto; }
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  transition: background .15s, color .15s;
+}
+.btn-icon:hover { background: var(--surface-2); color: var(--text); }
+.btn-icon:active { transform: scale(.96); }
+.btn-icon.spinning svg { animation: spin .8s linear infinite; }
+
+/* ============ Main Layout ============ */
+.app-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ============ Files Panel ============ */
+.files-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+.panel-header {
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.panel-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.file-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.filter-chips::-webkit-scrollbar { display: none; }
+.chip {
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  background: var(--surface-2);
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.chip:hover { background: var(--surface-3); }
+.chip.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* ============ Table / File List ============ */
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.table-container::-webkit-scrollbar { width: 8px; }
+.table-container::-webkit-scrollbar-track { background: transparent; }
+.table-container::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+.table-container::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.file-list { display: flex; flex-direction: column; }
+.file-list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 5;
+}
+.col-thumb { width: 44px; flex-shrink: 0; }
+.col-name { flex: 1; min-width: 0; }
+.col-type { width: 100px; flex-shrink: 0; }
+.col-action { width: 100px; flex-shrink: 0; text-align: right; }
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .12s;
+  position: relative;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.file-row:hover { background: var(--surface-2); }
+.file-row.selected { background: var(--accent-soft); }
+.file-row.selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+}
+.file-row:focus-visible { outline: none; background: var(--surface-2); }
+.file-row.selected:focus-visible { background: var(--accent-soft); }
+
+.file-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border);
+}
+.file-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.file-thumb-icon { color: var(--text-muted); }
+.file-thumb[data-cat="image"] { background: #E0F2FE; }
+.file-thumb[data-cat="image"] .file-thumb-icon { color: #0284C7; }
+.file-thumb[data-cat="video"] { background: #FAE8FF; }
+.file-thumb[data-cat="video"] .file-thumb-icon { color: #C026D3; }
+.file-thumb[data-cat="audio"] { background: #F0FDFA; }
+.file-thumb[data-cat="audio"] .file-thumb-icon { color: #0D9488; }
+.file-thumb[data-cat="pdf"] { background: #FEF2F2; }
+.file-thumb[data-cat="pdf"] .file-thumb-icon { color: #DC2626; }
+.file-thumb[data-cat="text"] { background: #F0FDF4; }
+.file-thumb[data-cat="text"] .file-thumb-icon { color: #16A34A; }
+.file-thumb[data-cat="archive"] { background: #FFFBEB; }
+.file-thumb[data-cat="archive"] .file-thumb-icon { color: #D97706; }
+.file-thumb[data-cat="binary"] { background: #F1F5F9; }
+.file-thumb[data-cat="binary"] .file-thumb-icon { color: #475569; }
+.file-thumb[data-cat="unknown"] { background: var(--surface-3); }
+.file-thumb[data-cat="unknown"] .file-thumb-icon { color: var(--text-muted); }
+
+.file-name-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-filename {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--surface-2);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.file-type-badge[data-cat="image"] { background: #E0F2FE; color: #0369A1; }
+.file-type-badge[data-cat="video"] { background: #FAE8FF; color: #A21CAF; }
+.file-type-badge[data-cat="audio"] { background: #F0FDFA; color: #0F766E; }
+.file-type-badge[data-cat="pdf"] { background: #FEF2F2; color: #B91C1C; }
+.file-type-badge[data-cat="text"] { background: #F0FDF4; color: #15803D; }
+.file-type-badge[data-cat="archive"] { background: #FFFBEB; color: #B45309; }
+.file-type-badge[data-cat="binary"] { background: #F1F5F9; color: #334155; }
+
+.row-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--accent-text);
+  transition: background .15s, transform .1s;
+  white-space: nowrap;
+}
+.row-download-btn:hover { background: var(--accent-hover); }
+.row-download-btn:active { transform: scale(.96); }
+
+/* ============ States ============ */
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  min-height: 320px;
+}
+.state-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.state-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.state-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 360px;
+  line-height: 1.5;
+}
+.state-action {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--accent-text);
+  transition: background .15s;
+}
+.state-action:hover { background: var(--accent-hover); }
+
+/* Skeleton */
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.skel {
+  background: var(--surface-2);
+  border-radius: var(--radius-xs);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.skel-thumb { width: 44px; height: 44px; flex-shrink: 0; }
+.skel-name { height: 14px; width: 60%; border-radius: 4px; }
+.skel-name-2 { height: 11px; width: 40%; border-radius: 4px; margin-top: 5px; }
+.skel-type { width: 100px; height: 22px; flex-shrink: 0; }
+.skel-action { width: 90px; height: 28px; flex-shrink: 0; border-radius: var(--radius-xs); }
+.skel-name-wrap { flex: 1; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============ Preview Panel ============ */
+.preview-panel {
+  width: var(--preview-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.preview-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+.preview-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  margin-bottom: 16px;
+}
+.preview-empty-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.preview-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 240px;
+}
+
+.preview-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.preview-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.preview-header-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.preview-title-wrap { flex: 1; min-width: 0; }
+.preview-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  word-break: break-word;
+}
+.preview-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.preview-close:hover { background: var(--surface-2); color: var(--text); }
+.preview-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.preview-body {
+  flex: 1;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.preview-body::-webkit-scrollbar { width: 8px; }
+.preview-body::-webkit-scrollbar-track { background: transparent; }
+.preview-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+/* Preview: media */
+.preview-media {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  min-height: 0;
+  background: var(--surface-2);
+  position: relative;
+}
+.preview-media img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+.preview-media video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-sm);
+}
+.preview-media .media-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  padding: 40px;
+  text-align: center;
+}
+
+/* Preview: audio */
+.preview-audio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  gap: 24px;
+  background: var(--surface-2);
+}
+.audio-art {
+  width: 160px;
+  height: 160px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--surface-3), var(--border-strong));
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  box-shadow: var(--shadow-md);
+}
+.audio-info { text-align: center; }
+.audio-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.audio-type { font-size: 12px; color: var(--text-muted); }
+audio { width: 100%; max-width: 320px; }
+audio::-webkit-media-controls-panel { background-color: var(--surface); }
+
+/* Preview: PDF */
+.preview-pdf {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: var(--text-muted);
+}
+.preview-pdf iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Preview: text */
+.preview-text {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.preview-text::-webkit-scrollbar { width: 8px; }
+.preview-text::-webkit-scrollbar-track { background: var(--surface-2); }
+.preview-text::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+.text-viewer {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 16px 20px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 2;
+}
+.text-viewer.loading {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Preview: JSON */
+.json-viewer {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 16px 20px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 2;
+}
+.json-key { color: #0369A1; font-weight: 500; }
+.json-string { color: #15803D; }
+.json-number { color: #7C3AED; }
+.json-bool { color: #DB2777; }
+.json-null { color: var(--text-muted); }
+
+/* Preview: CSV */
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.csv-table th, .csv-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.csv-table th {
+  background: var(--surface-2);
+  font-weight: 600;
+  color: var(--text-2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.csv-table td { color: var(--text-2); }
+.csv-table tr:hover td { background: var(--surface-2); }
+
+/* Preview: fallback */
+.preview-fallback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--surface-2);
+  gap: 12px;
+}
+.fallback-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.fallback-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.fallback-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+/* Preview footer */
+.preview-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.preview-metadata {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.meta-item { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.meta-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.meta-value {
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn-primary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--accent-text);
+  transition: background .15s, transform .1s;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { transform: scale(.98); }
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface-2);
+  color: var(--text-2);
+  transition: background .15s;
+}
+.btn-ghost:hover { background: var(--surface-3); color: var(--text); }
+
+/* ============ Mobile Preview Modal ============ */
+.preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  opacity: 0;
+  transition: opacity .25s;
+}
+.modal-sheet {
+  position: relative;
+  width: 100%;
+  max-height: 92vh;
+  background: var(--surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.32, .72, 0, 1);
+  box-shadow: var(--shadow-lg);
+}
+.preview-modal.open .modal-backdrop { opacity: 1; }
+.preview-modal.open .modal-sheet { transform: translateY(0); }
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  margin: 8px auto 0;
+  flex-shrink: 0;
+}
+.modal-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ============ Toast ============ */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--text);
+  color: var(--surface);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .25s, transform .25s;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.toast-error { background: var(--danger); }
+
+/* ============ Animations ============ */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.file-row { animation: fadeIn .2s ease-out backwards; }
+.preview-content > * { animation: fadeIn .2s ease-out; }
+
+/* ============ Responsive ============ */
+@media (max-width: 900px) {
+  body { height: auto; overflow: visible; height: auto; }
+  .app-header { padding: 0 12px; gap: 10px; height: auto; flex-wrap: wrap; padding-block: 10px; }
+  .brand-text { display: none; }
+  .search-bar { order: 3; width: 100%; max-width: none; flex-basis: 100%; }
+  .header-actions { margin-left: auto; }
+  .app-main { flex-direction: column; overflow: visible; height: auto; }
+  .files-panel { border-right: none; overflow: visible; height: auto; }
+  .preview-panel { display: none; }
+  .panel-header { padding: 14px 16px 10px; position: sticky; top: 0; z-index: 50; }
+  .table-container { overflow: visible; height: auto; }
+  .file-list-header { display: none; }
+  .file-row { padding: 12px 16px; }
+  .col-type { display: none; }
+  .col-action { width: auto; }
+  .row-download-btn span { display: none; }
+  .row-download-btn { padding: 8px; }
+  .file-filename { display: none; }
+  .file-name { font-size: 14px; }
+  .file-thumb { width: 40px; height: 40px; }
+  .file-type-badge-mobile { display: inline-flex; }
+}
+
+@media (min-width: 901px) {
+  .file-type-badge-mobile { display: none; }
+}
+
+@media (max-width: 480px) {
+  .panel-title { font-size: 18px; }
+  .file-row { gap: 10px; padding: 10px 12px; }
+  .file-thumb { width: 36px; height: 36px; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">DL</div>
+    <div class="brand-text">
+      <span class="brand-name">Thio Downloads</span>
+      <span class="brand-sub">File Library</span>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.3-4.3"/>
+    </svg>
+    <input type="search" id="search-input" placeholder="Search files, names, types…" aria-label="Search files" autocomplete="off" spellcheck="false" />
+    <kbd class="search-kbd" aria-hidden="true">⌘K</kbd>
+  </div>
+
+  <div class="header-actions">
+    <button class="btn-icon" id="refresh-btn" aria-label="Refresh file list" title="Refresh">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+        <path d="M21 3v5h-5"/>
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+        <path d="M3 21v-5h5"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="app-main">
+  <section class="files-panel" aria-label="File list">
+    <div class="panel-header">
+      <div class="panel-title-row">
+        <h2 class="panel-title">Files</h2>
+        <span class="file-count" id="file-count" aria-live="polite">—</span>
+      </div>
+      <div class="filter-chips" id="filter-chips" role="tablist" aria-label="Filter by file type">
+        <button class="chip active" data-cat="all" role="tab" aria-selected="true">All</button>
+        <button class="chip" data-cat="image" role="tab" aria-selected="false">Images</button>
+        <button class="chip" data-cat="video" role="tab" aria-selected="false">Video</button>
+        <button class="chip" data-cat="audio" role="tab" aria-selected="false">Audio</button>
+        <button class="chip" data-cat="pdf" role="tab" aria-selected="false">PDF</button>
+        <button class="chip" data-cat="text" role="tab" aria-selected="false">Text</button>
+        <button class="chip" data-cat="archive" role="tab" aria-selected="false">Archives</button>
+        <button class="chip" data-cat="other" role="tab" aria-selected="false">Other</button>
+      </div>
+    </div>
+    <div class="table-container" id="table-container">
+      <!-- Dynamic content -->
+    </div>
+  </section>
+
+  <aside class="preview-panel" id="preview-panel" aria-label="File preview">
+    <div class="preview-empty" id="preview-empty">
+      <div class="preview-empty-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <p class="preview-empty-title">Select a file</p>
+      <p class="preview-empty-sub">Click any file to preview its contents here</p>
+    </div>
+    <div class="preview-content" id="preview-content" hidden></div>
+  </aside>
+</main>
+
+<div class="preview-modal" id="preview-modal" hidden>
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-label="File preview">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-content" id="modal-content"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+(() => {
+'use strict';
+
+// ============ Constants ============
+const JSON_URL = 'https://telestorage.pages.dev/p/pub_RY0Dprf253PuiC5Zdi2nbTbv5Ufd2Z8H.json?raw=1';
+const TEXT_PREVIEW_MAX_BYTES = 512 * 1024; // 512KB
+const CSV_MAX_ROWS = 500;
+
+const TYPE_CATEGORIES = {
+  image: {
+    exts: ['png','jpg','jpeg','gif','webp','svg','avif','bmp','ico','heic','heif','tiff','tif'],
+    label: 'Image'
+  },
+  video: {
+    exts: ['mp4','webm','ogg','ogv','mov','m4v','mkv','avi','3gp'],
+    label: 'Video'
+  },
+  audio: {
+    exts: ['mp3','wav','ogg','oga','m4a','aac','flac','opus','wma','aiff'],
+    label: 'Audio'
+  },
+  pdf: {
+    exts: ['pdf'],
+    label: 'PDF'
+  },
+  text: {
+    exts: ['txt','log','md','markdown','rtf','csv','json','xml','html','htm','css','js','mjs','cjs','ts','tsx','jsx','py','java','c','cpp','h','hpp','cc','cs','go','rs','rb','php','sh','bash','zsh','fish','yml','yaml','toml','ini','conf','cfg','sql','graphql','gql','vue','svelte','scss','sass','less','dart','kt','swift','lua','pl','r','scala','clj','ex','exs','erl','hs','ml','fs','v','zig','nim','cr','d','jl','makefile','dockerfile','gitignore','env','properties','gradle','sln','vcxproj'],
+    label: 'Text'
+  },
+  archive: {
+    exts: ['zip','rar','7z','tar','gz','bz2','xz','tgz','tbz','txz','lz','zst'],
+    label: 'Archive'
+  },
+  binary: {
+    exts: ['exe','msi','apk','aab','ipa','dmg','pkg','deb','rpm','app','dll','so','dylib','iso','img','bin','dat','db','sqlite','sqlite3','class','jar','war','wasm','o','a','lib'],
+    label: 'Binary'
+  }
+};
+
+// ============ State ============
+const state = {
+  files: [],
+  filtered: [],
+  selectedId: null,
+  loading: true,
+  error: null,
+  searchQuery: '',
+  activeCategory: 'all',
+  previewAbort: null
+};
+
+// ============ DOM ============
+const $ = (sel) => document.querySelector(sel);
+const els = {
+  searchInput: $('#search-input'),
+  refreshBtn: $('#refresh-btn'),
+  fileCount: $('#file-count'),
+  filterChips: $('#filter-chips'),
+  tableContainer: $('#table-container'),
+  previewPanel: $('#preview-panel'),
+  previewEmpty: $('#preview-empty'),
+  previewContent: $('#preview-content'),
+  previewModal: $('#preview-modal'),
+  modalBackdrop: $('#modal-backdrop'),
+  modalContent: $('#modal-content'),
+  toastContainer: $('#toast-container')
+};
+
+// ============ Icons ============
+const ICONS = {
+  image: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5a2 2 0 0 0-2.8 0L6 20"/></svg>',
+  video: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>',
+  audio: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  pdf: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h1.5a1.5 1.5 0 0 1 0 3H8z"/><path d="M14 13v3"/><path d="M17 13h2"/><path d="M17 13v3"/></svg>',
+  text: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>',
+  archive: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>',
+  binary: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="6" height="6" rx="1"/><rect x="3" y="14" width="6" height="6" rx="1"/><rect x="15" y="4" width="6" height="6" rx="1"/><rect x="15" y="14" width="6" height="6" rx="1"/></svg>',
+  unknown: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h1.5a1.5 1.5 0 0 1 0 3H9"/><path d="M9 16v1"/></svg>',
+  download: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  external: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+  error: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  empty: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
+  networkError: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/></svg>',
+  fileLarge: '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+};
+
+// ============ Utilities ============
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function isMobile() {
+  return window.matchMedia('(max-width: 900px)').matches;
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function safeFilename(s) {
+  return String(s).replace(/[^\w.\-]/g, '_').slice(0, 100) || 'download';
+}
+
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  els.toastContainer.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2800);
+}
+
+// ============ File Type Inference ============
+function inferMeta(file) {
+  const url = String(file.links || '');
+  const name = String(file.name || 'Unnamed');
+  let filename = '';
+
+  try {
+    const u = new URL(url);
+    const pathSegments = u.pathname.split('/');
+    filename = pathSegments.length > 0 ? decodeURIComponent(pathSegments[pathSegments.length - 1]) : '';
+  } catch {
+    filename = name;
+  }
+
+  if (!filename) filename = name;
+
+  // Determine extension
+  const dotIdx = filename.lastIndexOf('.');
+  const ext = dotIdx >= 0 && dotIdx < filename.length - 1
+    ? filename.slice(dotIdx + 1).toLowerCase()
+    : '';
+
+  // Categorize
+  let category = 'unknown';
+  let label = 'File';
+
+  for (const [cat, info] of Object.entries(TYPE_CATEGORIES)) {
+    if (info.exts.includes(ext)) {
+      category = cat;
+      label = info.label;
+      break;
+    }
+  }
+
+  // Special case: files without extension but with text-like names
+  if (category === 'unknown' && !ext && /^(readme|license|changelog|makefile|dockerfile)$/i.test(filename)) {
+    category = 'text';
+    label = 'Text';
+  }
+
+  return {
+    ...file,
+    id: file.id || `gen_${Math.random().toString(36).slice(2, 11)}`,
+    name,
+    links: url,
+    meta: { filename, ext, category, label, url }
+  };
+}
+
+// ============ Data Fetching ============
+async function loadFiles() {
+  state.loading = true;
+  state.error = null;
+  state.selectedId = null;
+  closePreview();
+  renderLoadingState();
+  els.refreshBtn.classList.add('spinning');
+
+  try {
+    const res = await fetch(JSON_URL, { cache: 'no-store', redirect: 'follow' });
+
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status} ${res.statusText}`);
+    }
+
+    const text = await res.text();
+    let json;
+
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new Error('The feed returned invalid JSON data');
+    }
+
+    if (!Array.isArray(json)) {
+      throw new Error('Expected a list of files but received a different format');
+    }
+
+    // Parse and validate records
+    const validFiles = [];
+    let skipped = 0;
+
+    for (const item of json) {
+      if (!item || typeof item !== 'object') { skipped++; continue; }
+      if (!item.name || !item.links) { skipped++; continue; }
+      if (typeof item.name !== 'string' || typeof item.links !== 'string') { skipped++; continue; }
+      try { new URL(item.links); } catch { skipped++; continue; }
+      validFiles.push(inferMeta(item));
+    }
+
+    state.files = validFiles;
+    state.loading = false;
+    applyFilters();
+
+    if (skipped > 0) {
+      console.warn(`Skipped ${skipped} invalid record(s)`);
+    }
+  } catch (err) {
+    state.loading = false;
+    state.error = err.message || 'Failed to load files';
+    renderErrorState(state.error);
+  } finally {
+    els.refreshBtn.classList.remove('spinning');
+  }
+}
+
+// ============ Filtering ============
+function applyFilters() {
+  const q = state.searchQuery.toLowerCase().trim();
+  const cat = state.activeCategory;
+
+  state.filtered = state.files.filter(f => {
+    // Category filter
+    if (cat !== 'all') {
+      if (cat === 'other') {
+        if (['image', 'video', 'audio', 'pdf', 'text'].includes(f.meta.category)) return false;
+      } else if (f.meta.category !== cat) {
+        return false;
+      }
+    }
+
+    // Search filter
+    if (q) {
+      const haystack = [
+        f.name,
+        f.meta.filename,
+        f.meta.ext,
+        f.meta.label,
+        f.meta.category
+      ].join(' ').toLowerCase();
+
+      if (!haystack.includes(q)) return false;
+    }
+
+    return true;
+  });
+
+  // Sort: name alphabetically
+  state.filtered.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+
+  renderFileList();
+  updateFileCount();
+}
+
+// ============ Rendering: States ============
+function renderLoadingState() {
+  els.fileCount.textContent = 'Loading…';
+  const rows = Array.from({ length: 8 }, () => `
+    <div class="skeleton-row">
+      <div class="skel skel-thumb"></div>
+      <div class="skel-name-wrap">
+        <div class="skel skel-name"></div>
+        <div class="skel skel-name-2"></div>
+      </div>
+      <div class="skel skel-type"></div>
+      <div class="skel skel-action"></div>
+    </div>
+  `).join('');
+  els.tableContainer.innerHTML = rows;
+}
+
+function renderErrorState(msg) {
+  els.fileCount.textContent = 'Error';
+  els.tableContainer.innerHTML = `
+    <div class="state-container">
+      <div class="state-icon">${ICONS.networkError}</div>
+      <p class="state-title">Couldn't load files</p>
+      <p class="state-sub">${escapeHtml(msg)}</p>
+      <button class="state-action" onclick="window.__dl_retry()">Try again</button>
+    </div>
+  `;
+  window.__dl_retry = loadFiles;
+}
+
+function renderEmptyState(isSearch = false) {
+  const icon = isSearch ? ICONS.empty : ICONS.fileLarge;
+  const title = isSearch ? 'No files found' : 'No files available';
+  const sub = isSearch
+    ? `No files match "${escapeHtml(state.searchQuery)}". Try a different search term.`
+    : 'The file library is currently empty. Check back later.';
+
+  els.tableContainer.innerHTML = `
+    <div class="state-container">
+      <div class="state-icon">${icon}</div>
+      <p class="state-title">${title}</p>
+      <p class="state-sub">${sub}</p>
+    </div>
+  `;
+}
+
+// ============ Rendering: File List ============
+function renderFileList() {
+  if (state.loading) return;
+  if (state.error) return;
+
+  if (state.filtered.length === 0) {
+    renderEmptyState(state.searchQuery !== '' || state.activeCategory !== 'all');
+    return;
+  }
+
+  const headerHtml = `
+    <div class="file-list-header" role="row">
+      <span class="col-thumb"></span>
+      <span class="col-name">Name</span>
+      <span class="col-type">Type</span>
+      <span class="col-action">Action</span>
+    </div>
+  `;
+
+  const rowsHtml = state.filtered.map((file, idx) => {
+    const isSelected = file.id === state.selectedId;
+    const thumbContent = file.meta.category === 'image'
+      ? `<img src="${escapeAttr(file.meta.url)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none';this.parentElement.innerHTML='${ICONS.image.replace(/"/g, '&quot;')}';this.parentElement.setAttribute('data-cat','unknown');" />`
+      : ICONS[file.meta.category] || ICONS.unknown;
+
+    const filenameDisplay = file.meta.filename && file.meta.filename !== file.name
+      ? `<span class="file-filename">${escapeHtml(file.meta.filename)}</span>`
+      : '';
+
+    return `
+      <button
+        class="file-row${isSelected ? ' selected' : ''}"
+        data-id="${escapeAttr(file.id)}"
+        role="row"
+        tabindex="0"
+        aria-label="${escapeAttr(file.name)}, ${escapeAttr(file.meta.label)}"
+        style="animation-delay: ${Math.min(idx * 0.02, 0.3)}s"
+      >
+        <span class="file-thumb col-thumb" data-cat="${escapeAttr(file.meta.category)}">
+          ${thumbContent}
+        </span>
+        <span class="file-name-wrap col-name">
+          <span class="file-name">${escapeHtml(file.name)}</span>
+          ${filenameDisplay}
+          <span class="file-type-badge file-type-badge-mobile" data-cat="${escapeAttr(file.meta.category)}" style="margin-top:4px;">${escapeHtml(file.meta.ext || file.meta.label)}</span>
+        </span>
+        <span class="col-type">
+          <span class="file-type-badge" data-cat="${escapeAttr(file.meta.category)}">${escapeHtml(file.meta.ext ? file.meta.ext.toUpperCase() : file.meta.label)}</span>
+        </span>
+        <span class="col-action" style="display:flex;justify-content:flex-end;">
+          <a class="row-download-btn" href="${escapeAttr(file.meta.url)}" download="${escapeAttr(safeFilename(file.meta.filename))}" onclick="event.stopPropagation();" aria-label="Download ${escapeAttr(file.name)}">
+            ${ICONS.download}
+            <span>Download</span>
+          </a>
+        </span>
+      </button>
+    `;
+  }).join('');
+
+  els.tableContainer.innerHTML = `<div class="file-list">${headerHtml}${rowsHtml}</div>`;
+}
+
+function updateFileCount() {
+  const total = state.files.length;
+  const shown = state.filtered.length;
+  if (total === 0 && !state.loading && !state.error) {
+    els.fileCount.textContent = '0 items';
+  } else if (shown === total) {
+    els.fileCount.textContent = `${total} item${total !== 1 ? 's' : ''}`;
+  } else {
+    els.fileCount.textContent = `${shown} of ${total}`;
+  }
+}
+
+// ============ Preview ============
+function selectFile(id) {
+  const file = state.files.find(f => f.id === id);
+  if (!file) return;
+
+  state.selectedId = id;
+
+  // Update selected state in list
+  document.querySelectorAll('.file-row').forEach(row => {
+    row.classList.toggle('selected', row.dataset.id === id);
+  });
+
+  if (isMobile()) {
+    openMobilePreview(file);
+  } else {
+    renderDesktopPreview(file);
+  }
+}
+
+function closePreview() {
+  state.selectedId = null;
+
+  if (state.previewAbort) {
+    state.previewAbort.abort();
+    state.previewAbort = null;
+  }
+
+  // Desktop: show empty state
+  els.previewEmpty.hidden = false;
+  els.previewContent.hidden = true;
+  els.previewContent.innerHTML = '';
+
+  // Mobile: close modal
+  closeMobilePreview();
+
+  // Deselect rows
+  document.querySelectorAll('.file-row').forEach(row => row.classList.remove('selected'));
+}
+
+function renderDesktopPreview(file) {
+  els.previewEmpty.hidden = true;
+  els.previewContent.hidden = false;
+  els.previewContent.innerHTML = '';
+  buildPreviewContent(els.previewContent, file);
+}
+
+function openMobilePreview(file) {
+  els.modalContent.innerHTML = '';
+  buildPreviewContent(els.modalContent, file);
+  els.previewModal.hidden = false;
+  requestAnimationFrame(() => els.previewModal.classList.add('open'));
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobilePreview() {
+  els.previewModal.classList.remove('open');
+  document.body.style.overflow = '';
+  setTimeout(() => { els.previewModal.hidden = true; }, 300);
+}
+
+function buildPreviewContent(container, file) {
+  // Header
+  const header = document.createElement('div');
+  header.className = 'preview-header';
+
+  const headerTop = document.createElement('div');
+  headerTop.className = 'preview-header-top';
+
+  const titleWrap = document.createElement('div');
+  titleWrap.className = 'preview-title-wrap';
+
+  const title = document.createElement('div');
+  title.className = 'preview-title';
+  title.textContent = file.name;
+  titleWrap.appendChild(title);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'preview-close';
+  closeBtn.setAttribute('aria-label', 'Close preview');
+  closeBtn.innerHTML = ICONS.close;
+  closeBtn.addEventListener('click', closePreview);
+
+  headerTop.appendChild(titleWrap);
+  headerTop.appendChild(closeBtn);
+
+  const metaRow = document.createElement('div');
+  metaRow.className = 'preview-meta-row';
+
+  const badge = document.createElement('span');
+  badge.className = 'file-type-badge';
+  badge.setAttribute('data-cat', file.meta.category);
+  badge.textContent = file.meta.ext ? file.meta.ext.toUpperCase() : file.meta.label;
+  metaRow.appendChild(badge);
+
+  const sep = document.createTextNode(` · ${file.meta.label}`);
+  metaRow.appendChild(sep);
+
+  header.appendChild(headerTop);
+  header.appendChild(metaRow);
+  container.appendChild(header);
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'preview-body';
+  container.appendChild(body);
+
+  // Render preview based on category
+  renderPreviewBody(body, file).then(() => {
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'preview-footer';
+    buildPreviewFooter(footer, file);
+    container.appendChild(footer);
+  });
+}
+
+async function renderPreviewBody(container, file) {
+  const { category, url } = file.meta;
+
+  try {
+    switch (category) {
+      case 'image':
+        renderImagePreview(container, file);
+        break;
+      case 'video':
+        renderVideoPreview(container, file);
+        break;
+      case 'audio':
+        renderAudioPreview(container, file);
+        break;
+      case 'pdf':
+        renderPdfPreview(container, file);
+        break;
+      case 'text':
+        await renderTextPreview(container, file);
+        break;
+      default:
+        renderFallbackPreview(container, file);
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    renderFallbackPreview(container, file, err.message);
+  }
+}
+
+function renderImagePreview(container, file) {
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-media';
+
+  const img = document.createElement('img');
+  img.src = file.meta.url;
+  img.alt = file.name;
+  img.loading = 'lazy';
+  img.decoding = 'async';
+
+  img.addEventListener('error', () => {
+    wrap.innerHTML = '';
+    wrap.classList.add('preview-fallback');
+    wrap.innerHTML = `
+      <div class="fallback-icon">${ICONS.error}</div>
+      <p class="fallback-title">Image couldn't be loaded</p>
+      <p class="fallback-sub">The image file may be corrupted or the URL is inaccessible.</p>
+    `;
+  });
+
+  wrap.appendChild(img);
+  container.appendChild(wrap);
+}
+
+function renderVideoPreview(container, file) {
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-media';
+
+  const video = document.createElement('video');
+  video.src = file.meta.url;
+  video.controls = true;
+  video.preload = 'metadata';
+  video.setAttribute('aria-label', `Video: ${file.name}`);
+
+  video.addEventListener('error', () => {
+    wrap.innerHTML = '';
+    wrap.classList.add('preview-fallback');
+    wrap.innerHTML = `
+      <div class="fallback-icon">${ICONS.error}</div>
+      <p class="fallback-title">Video couldn't be loaded</p>
+      <p class="fallback-sub">This video format may not be supported by your browser.</p>
+    `;
+  });
+
+  wrap.appendChild(video);
+  container.appendChild(wrap);
+}
+
+function renderAudioPreview(container, file) {
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-audio';
+
+  const art = document.createElement('div');
+  art.className = 'audio-art';
+  art.innerHTML = ICONS.audio;
+
+  const info = document.createElement('div');
+  info.className = 'audio-info';
+
+  const name = document.createElement('div');
+  name.className = 'audio-name';
+  name.textContent = file.name;
+
+  const type = document.createElement('div');
+  type.className = 'audio-type';
+  type.textContent = `${file.meta.ext ? file.meta.ext.toUpperCase() : ''} · Audio`.trim();
+
+  info.appendChild(name);
+  info.appendChild(type);
+
+  const audio = document.createElement('audio');
+  audio.src = file.meta.url;
+  audio.controls = true;
+  audio.preload = 'metadata';
+  audio.setAttribute('aria-label', `Audio: ${file.name}`);
+
+  audio.addEventListener('error', () => {
+    wrap.innerHTML = '';
+    wrap.classList.add('preview-fallback');
+    wrap.innerHTML = `
+      <div class="fallback-icon">${ICONS.error}</div>
+      <p class="fallback-title">Audio couldn't be loaded</p>
+      <p class="fallback-sub">This audio format may not be supported by your browser.</p>
+    `;
+  });
+
+  wrap.appendChild(art);
+  wrap.appendChild(info);
+  wrap.appendChild(audio);
+  container.appendChild(wrap);
+}
+
+function renderPdfPreview(container, file) {
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-pdf';
+
+  const iframe = document.createElement('iframe');
+  iframe.src = file.meta.url;
+  iframe.title = `PDF preview: ${file.name}`;
+  iframe.setAttribute('aria-label', `PDF document: ${file.name}`);
+
+  iframe.addEventListener('error', () => {
+    wrap.innerHTML = '';
+    renderFallbackPreview(wrap, file, 'PDF viewer failed to load');
+  });
+
+  wrap.appendChild(iframe);
+  container.appendChild(wrap);
+}
+
+async function renderTextPreview(container, file) {
+  // Cancel any previous fetch
+  if (state.previewAbort) state.previewAbort.abort();
+  const controller = new AbortController();
+  state.previewAbort = controller;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-text';
+  container.appendChild(wrap);
+
+  const pre = document.createElement('pre');
+  pre.className = 'text-viewer loading';
+  pre.textContent = 'Loading content…';
+  wrap.appendChild(pre);
+
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const res = await fetch(file.meta.url, {
+      signal: controller.signal,
+      headers: { 'Range': `bytes=0-${TEXT_PREVIEW_MAX_BYTES}` }
+    });
+
+    if (!res.ok && res.status !== 206) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const text = await res.text();
+    clearTimeout(timeout);
+
+    if (controller.signal.aborted) return;
+
+    pre.classList.remove('loading');
+
+    // JSON pretty-print
+    if (file.meta.ext === 'json') {
+      try {
+        const parsed = JSON.parse(text);
+        renderJsonViewer(pre, parsed);
+      } catch {
+        pre.textContent = text.slice(0, TEXT_PREVIEW_MAX_BYTES);
+      }
+    }
+    // CSV table
+    else if (file.meta.ext === 'csv') {
+      renderCsvViewer(wrap, text, pre);
+    }
+    // Regular text
+    else {
+      pre.textContent = text.slice(0, TEXT_PREVIEW_MAX_BYTES);
+    }
+
+    // Add truncation notice if needed
+    if (text.length >= TEXT_PREVIEW_MAX_BYTES) {
+      const note = document.createElement('div');
+      note.style.cssText = 'padding:8px 20px;font-size:12px;color:var(--text-muted);background:var(--surface-2);border-top:1px solid var(--border);text-align:center;';
+      note.textContent = `Showing first ${(TEXT_PREVIEW_MAX_BYTES / 1024).toFixed(0)}KB · Download for full content`;
+      wrap.appendChild(note);
+    }
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err.name === 'AbortError') return;
+
+    container.innerHTML = '';
+    const fallback = document.createElement('div');
+    fallback.className = 'preview-fallback';
+    fallback.innerHTML = `
+      <div class="fallback-icon">${ICONS.error}</div>
+      <p class="fallback-title">Couldn't load text content</p>
+      <p class="fallback-sub">The file content couldn't be fetched for preview. You can still download it directly.</p>
+    `;
+    container.appendChild(fallback);
+  } finally {
+    state.previewAbort = null;
+  }
+}
+
+function renderJsonViewer(pre, data) {
+  const jsonStr = JSON.stringify(data, null, 2);
+  // Escape HTML first
+  const escaped = escapeHtml(jsonStr);
+  // Apply syntax highlighting via regex on escaped content
+  const highlighted = escaped
+    .replace(/(&quot;[^&]*?&quot;)(\s*:)/g, '<span class="json-key">$1</span>$2')
+    .replace(/:\s*(&quot;[^&]*?&quot;)/g, ': <span class="json-string">$1</span>')
+    .replace(/:\s*(-?\d+\.?\d*(?:[eE][+\-]?\d+)?)/g, ': <span class="json-number">$1</span>')
+    .replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>')
+    .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+  pre.innerHTML = highlighted;
+}
+
+function renderCsvViewer(wrap, text, pre) {
+  const rows = parseCsv(text);
+  if (rows.length === 0 || (rows.length === 1 && rows[0].length <= 1)) {
+    pre.textContent = text.slice(0, TEXT_PREVIEW_MAX_BYTES);
+    return;
+  }
+
+  // Remove the pre, replace with table
+  pre.remove();
+
+  const table = document.createElement('table');
+  table.className = 'csv-table';
+
+  const thead = document.createElement('thead');
+  const headerTr = document.createElement('tr');
+  rows[0].forEach(cell => {
+    const th = document.createElement('th');
+    th.textContent = cell;
+    th.title = cell;
+    headerTr.appendChild(th);
+  });
+  thead.appendChild(headerTr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const maxRows = Math.min(rows.length, CSV_MAX_ROWS + 1);
+  for (let i = 1; i < maxRows; i++) {
+    const tr = document.createElement('tr');
+    rows[i].forEach(cell => {
+      const td = document.createElement('td');
+      td.textContent = cell;
+      td.title = cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+
+  if (rows.length > CSV_MAX_ROWS + 1) {
+    const note = document.createElement('div');
+    note.style.cssText = 'padding:8px 20px;font-size:12px;color:var(--text-muted);background:var(--surface-2);border-top:1px solid var(--border);text-align:center;';
+    note.textContent = `Showing first ${CSV_MAX_ROWS} of ${rows.length - 1} rows`;
+    wrap.appendChild(note);
+  }
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let currentRow = [];
+  let currentField = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        currentRow.push(currentField);
+        currentField = '';
+      } else if (char === '\n') {
+        currentRow.push(currentField);
+        rows.push(currentRow);
+        currentRow = [];
+        currentField = '';
+      } else if (char === '\r') {
+        // Skip, will be handled by \n
+      } else {
+        currentField += char;
+      }
+    }
+  }
+
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+
+  return rows.filter(r => r.length > 0 && !(r.length === 1 && r[0] === ''));
+}
+
+function renderFallbackPreview(container, file, reason) {
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-fallback';
+
+  const icon = document.createElement('div');
+  icon.className = 'fallback-icon';
+  icon.innerHTML = ICONS[file.meta.category] || ICONS.unknown;
+
+  const title = document.createElement('p');
+  title.className = 'fallback-title';
+  title.textContent = 'Preview unavailable';
+
+  const sub = document.createElement('p');
+  sub.className = 'fallback-sub';
+  sub.textContent = reason
+    ? `${reason}. You can still download this file directly.`
+    : `${file.meta.label} files can't be rendered in the browser. Use the download button below to access this file.`;
+
+  wrap.appendChild(icon);
+  wrap.appendChild(title);
+  wrap.appendChild(sub);
+  container.appendChild(wrap);
+}
+
+function buildPreviewFooter(footer, file) {
+  // Metadata
+  const meta = document.createElement('div');
+  meta.className = 'preview-metadata';
+
+  const items = [
+    { label: 'ID', value: file.id },
+    { label: 'Filename', value: file.meta.filename },
+    { label: 'Type', value: file.meta.label },
+    { label: 'Extension', value: file.meta.ext || '—' }
+  ];
+
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'meta-item';
+    const label = document.createElement('span');
+    label.className = 'meta-label';
+    label.textContent = item.label;
+    const value = document.createElement('span');
+    value.className = 'meta-value';
+    value.textContent = item.value;
+    value.title = item.value;
+    div.appendChild(label);
+    div.appendChild(value);
+    meta.appendChild(div);
+  });
+
+  footer.appendChild(meta);
+
+  // Actions
+  const actions = document.createElement('div');
+  actions.className = 'preview-actions';
+
+  const downloadLink = document.createElement('a');
+  downloadLink.className = 'btn-primary';
+  downloadLink.href = file.meta.url;
+  downloadLink.download = safeFilename(file.meta.filename);
+  downloadLink.innerHTML = `${ICONS.download}<span>Download</span>`;
+  downloadLink.setAttribute('aria-label', `Download ${file.name}`);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'btn-ghost';
+  copyBtn.innerHTML = ICONS.copy;
+  copyBtn.setAttribute('aria-label', 'Copy link');
+  copyBtn.title = 'Copy link';
+  copyBtn.addEventListener('click', () => copyToClipboard(file.meta.url));
+
+  const openBtn = document.createElement('a');
+  openBtn.className = 'btn-ghost';
+  openBtn.href = file.meta.url;
+  openBtn.target = '_blank';
+  openBtn.rel = 'noopener noreferrer';
+  openBtn.innerHTML = ICONS.external;
+  openBtn.setAttribute('aria-label', 'Open in new tab');
+  openBtn.title = 'Open in new tab';
+
+  actions.appendChild(downloadLink);
+  actions.appendChild(copyBtn);
+  actions.appendChild(openBtn);
+  footer.appendChild(actions);
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Link copied to clipboard');
+  } catch {
+    // Fallback
+    const input = document.createElement('input');
+    input.value = text;
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    try {
+      document.execCommand('copy');
+      showToast('Link copied to clipboard');
+    } catch {
+      showToast('Failed to copy link', 'error');
+    }
+    document.body.removeChild(input);
+  }
+}
+
+// ============ Event Handlers ============
+const handleSearch = debounce((e) => {
+  state.searchQuery = e.target.value;
+  applyFilters();
+}, 120);
+
+function handleCategoryClick(cat) {
+  state.activeCategory = cat;
+  document.querySelectorAll('.chip').forEach(chip => {
+    const active = chip.dataset.cat === cat;
+    chip.classList.toggle('active', active);
+    chip.setAttribute('aria-selected', active);
+  });
+  applyFilters();
+}
+
+function handleTableClick(e) {
+  const row = e.target.closest('.file-row');
+  if (!row) return;
+  // Don't intercept download link clicks
+  if (e.target.closest('.row-download-btn')) return;
+  e.preventDefault();
+  selectFile(row.dataset.id);
+}
+
+function handleTableKeydown(e) {
+  const row = e.target.closest('.file-row');
+  if (!row) return;
+
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    selectFile(row.dataset.id);
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const next = row.nextElementSibling;
+    if (next && next.classList.contains('file-row')) {
+      row.tabIndex = -1;
+      next.tabIndex = 0;
+      next.focus();
+    }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prev = row.previousElementSibling;
+    if (prev && prev.classList.contains('file-row')) {
+      row.tabIndex = -1;
+      prev.tabIndex = 0;
+      prev.focus();
+    }
+  }
+}
+
+function handleKeyDown(e) {
+  // Cmd/Ctrl+K → focus search
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    els.searchInput.focus();
+    els.searchInput.select();
+    return;
+  }
+
+  // Escape → close preview
+  if (e.key === 'Escape') {
+    if (!els.previewModal.hidden) {
+      closeMobilePreview();
+    } else if (state.selectedId) {
+      closePreview();
+    } else if (document.activeElement === els.searchInput) {
+      els.searchInput.blur();
+    }
+    return;
+  }
+
+  // "/" → focus search (if not already in an input)
+  if (e.key === '/' && document.activeElement !== els.searchInput) {
+    e.preventDefault();
+    els.searchInput.focus();
+  }
+}
+
+// ============ Responsive Handling ============
+let wasMobile = isMobile();
+
+function handleResize() {
+  const mobile = isMobile();
+  if (mobile !== wasMobile) {
+    wasMobile = mobile;
+    // If switching to desktop and a file is selected, move preview to desktop panel
+    if (!mobile && state.selectedId) {
+      const file = state.files.find(f => f.id === state.selectedId);
+      if (file) {
+        closeMobilePreview();
+        renderDesktopPreview(file);
+      }
+    }
+    // If switching to mobile, clear desktop preview
+    if (mobile && state.selectedId) {
+      els.previewContent.innerHTML = '';
+      els.previewContent.hidden = true;
+      els.previewEmpty.hidden = false;
+    }
+  }
+}
+
+// ============ Init ============
+function init() {
+  // Search
+  els.searchInput.addEventListener('input', handleSearch);
+
+  // Filter chips
+  els.filterChips.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (chip) handleCategoryClick(chip.dataset.cat);
+  });
+
+  // File list
+  els.tableContainer.addEventListener('click', handleTableClick);
+  els.tableContainer.addEventListener('keydown', handleTableKeydown);
+
+  // Refresh
+  els.refreshBtn.addEventListener('click', loadFiles);
+
+  // Modal backdrop
+  els.modalBackdrop.addEventListener('click', closePreview);
+
+  // Keyboard
+  document.addEventListener('keydown', handleKeyDown);
+
+  // Resize
+  window.addEventListener('resize', debounce(handleResize, 150));
+
+  // Update kbd hint for non-Mac
+  if (!/Mac|iPod|iPhone|iPad/.test(navigator.platform)) {
+    document.querySelector('.search-kbd').textContent = 'Ctrl K';
+  }
+
+  // Load files
+  loadFiles();
+}
+
+init();
+})();
+</script>
+</body>
+</html>
